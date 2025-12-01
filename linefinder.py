@@ -5,6 +5,7 @@
 from astropy.io import fits
 from astropy.convolution import convolve, Box1DKernel
 import csv
+from itertools import islice
 import matplotlib.pyplot as plt
 import numpy as np
 from os import listdir
@@ -14,6 +15,9 @@ from scipy.signal import find_peaks
 
 def gauss(x, y0, a, x0, sigma):
     return y0+a*np.exp(-(x-x0)**2/(2*sigma**2))
+
+def model_sin(x, A, w, p, off):
+    return(A * np.sin(w * x + p) + off)
 
 box_kernel = Box1DKernel(5)
 
@@ -169,5 +173,46 @@ with open(f'{obj_name}_lines.csv', 'w', newline='') as csvfile:
                     plt.scatter(rough_loc, rough_hgt)
                     plt.show()
 
+vrads = []
+phis = []
 
-    
+with open(f'{obj_name}_lines.csv', 'r') as file:
+    for line in islice(file, 1, None): 
+        splitstr = line.split(',')
+        vrads.append(float(splitstr[-1]))
+        phis.append(float(splitstr[3]))
+
+p0_sin = [np.max(vrads)-np.min(vrads), 2*np.pi, 3, np.max(vrads)]
+
+poptsin, pcovsin = curve_fit(model_sin, phis, vrads, p0=p0_sin, maxfev=5000)
+
+sinx = np.linspace(0.,1.,1000)
+siny = model_sin(sinx, poptsin[0], poptsin[1], poptsin[2], poptsin[3])
+
+print(poptsin)
+
+semi_amp = abs(poptsin[0])
+v_sys = np.median(siny)
+
+print('=====VELOCITY CURVE=====')
+print(f'SEMI-AMPLITUDE      = {semi_amp} km/s')
+print(f'SYSTEMIC VELOCITY   = {v_sys} km/s')
+
+fig = plt.figure()
+ax = fig.add_subplot()
+
+print(np.max(siny))
+
+ax.plot([0,1],[0,0],'k--', alpha=0.5)
+ax.plot([0,1],[v_sys,v_sys],'r--', alpha=0.5)
+ax.scatter(phis, vrads, color='k', marker='x')
+ax.plot(sinx, siny, 'r')
+ax.set_title(f'{obj_name} velocity curve')
+ax.set_ylim(-1.1*np.max(siny), 1.1*np.max(siny))
+ax.set_xlabel('Phase')
+ax.set_ylabel('v_rad / km/s')
+ax.text(0.95,0.95, f'SEMI-AMPLITUDE: {np.round(semi_amp, 2)} km/s',
+        va='top', ha='right', transform=ax.transAxes)
+ax.text(0.95,0.9, f'SYSTEMIC VELOCITY: {np.round(v_sys, 2)} km/s',
+        va='top', ha='right', transform=ax.transAxes)
+plt.show()
