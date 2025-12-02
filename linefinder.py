@@ -193,26 +193,35 @@ print(poptsin)
 
 semi_amp = abs(poptsin[0])
 v_sys = np.median(siny)
+perr = np.sqrt(np.diag(pcovsin))
 
 print('=====VELOCITY CURVE=====')
 print(f'SEMI-AMPLITUDE      = {semi_amp} km/s')
+print(f'                  +/- {perr[0]}')
 print(f'SYSTEMIC VELOCITY   = {v_sys} km/s')
+print(f'                  +/- {perr[3]}')
 
 fig = plt.figure()
 ax = fig.add_subplot()
 
-print(np.max(siny))
+p1 = [a + b for a, b in zip(poptsin, np.sqrt(np.diag(pcovsin)))]
+p2 = [a - b for a, b in zip(poptsin, np.sqrt(np.diag(pcovsin)))]
 
-ax.plot([0,1],[0,0],'k--', alpha=0.5)
+upper_bound = model_sin(sinx, p1[0], p1[1], p1[2], p1[3])
+lower_bound = model_sin(sinx, p2[0], p2[1], p2[2], p2[3])
+
 ax.plot([0,1],[v_sys,v_sys],'r--', alpha=0.5)
 ax.scatter(phis, vrads, color='k', marker='x')
 ax.plot(sinx, siny, 'r')
+ax.fill_between(sinx, lower_bound, upper_bound, color='r', alpha=0.3)
+ax.fill_between(sinx, v_sys-perr[3], v_sys+perr[3], color='r', alpha=0.3)
 ax.set_title(f'{obj_name} velocity curve')
 ax.set_ylim(-1.1*np.max(siny), 1.1*np.max(siny))
 ax.set_xlabel('Phase')
 ax.set_ylabel('v_rad / km/s')
-ax.text(0.95,0.95, f'SEMI-AMPLITUDE: {np.round(semi_amp, 2)} km/s',
+ax.text(0.95,0.95, f'SEMI-AMP.: {np.round(semi_amp, 2)} +/- {np.round(perr[0], 2)} km/s',
         va='top', ha='right', transform=ax.transAxes)
-ax.text(0.95,0.9, f'SYSTEMIC VELOCITY: {np.round(v_sys, 2)} km/s',
+ax.text(0.95,0.9, f'SYS. VEL. {np.round(v_sys, 2)} +/- {np.round(perr[3], 2)} km/s',
         va='top', ha='right', transform=ax.transAxes)
+plt.grid()
 plt.show()
