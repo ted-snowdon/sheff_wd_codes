@@ -53,7 +53,7 @@ obj_name = (fits.getheader('VIS/'+vis_files[0], ext=0)['OBJECT']).split('.')[0]
 
 with open(f'{obj_name}_lines.csv', 'w', newline='') as csvfile:
     csvwriter = csv.writer(csvfile, delimiter=',')
-    csvwriter.writerow(['Filename', 'Date', 'Time', 'Phase', 'Line', 'Peak', 'Vel. shift'])
+    csvwriter.writerow(['Filename', 'Date', 'Time', 'Phase', 'Line', 'Peak', 'Vel. shift', 'Error'])
     for file in vis_files:
         hdu = fits.open('VIS/'+file)
         date, time = (hdu[0].header['DATE-OBS']).split('T')
@@ -77,9 +77,11 @@ with open(f'{obj_name}_lines.csv', 'w', newline='') as csvfile:
         curve_Ha = coeff[0] + coeff[1]*np.exp(-(xx_Ha-coeff[2])**2/(2.*coeff[3]**2))
         Ha_peak_pos = np.round(coeff[2], 4)
         Ha_dwvl = Ha_peak_pos-H_a
+        Ha_werror = np.sqrt(np.diag(var_matrix))[2]
         Ha_dvrd = (Ha_dwvl*c)/H_a
+        Ha_verror = np.abs(Ha_dvrd*(Ha_werror/Ha_dwvl))
 
-        csvwriter.writerow([file, date, time, phi, H_a, Ha_peak_pos, Ha_dvrd])
+        csvwriter.writerow([file, date, time, phi, H_a, Ha_peak_pos, Ha_dvrd, Ha_verror])
         if Ha_plot_flag:
             plt.plot(x_Ha, flx[H_min:H_max], color='gray')
             plt.plot(xx_Ha, yy_Ha, color='k')
@@ -113,9 +115,11 @@ with open(f'{obj_name}_lines.csv', 'w', newline='') as csvfile:
             curve = coeff[0] + coeff[1]*np.exp(-(xx-coeff[2])**2/(2.*coeff[3]**2))
             peak_pos = np.round(coeff[2], 4)
             wvl_shift = peak_pos-line_0
+            wvl_error = np.sqrt(np.diag(var_matrix))[2]
             vel_shift = (wvl_shift*c)/line_0
+            vel_error = np.abs(vel_shift*(wvl_error/wvl_shift))
 
-            csvwriter.writerow([file, date, time, phi, line_0, peak_pos, vel_shift])
+            csvwriter.writerow([file, date, time, phi, line_0, peak_pos, vel_shift, vel_error])
             if vis_plot_flag:
                 plt.plot(xr,yr, color='gray')
                 plt.plot(xrs, yrs, 'k--')
@@ -158,9 +162,11 @@ with open(f'{obj_name}_lines.csv', 'w', newline='') as csvfile:
                 curve = coeff[0] + coeff[1]*np.exp(-(xx-coeff[2])**2/(2.*coeff[3]**2))
                 peak_pos = np.round(coeff[2], 4)
                 wvl_shift = peak_pos-line
+                wvl_error = np.sqrt(np.diag(var_matrix))[2]
                 vel_shift = (wvl_shift*c)/line
+                vel_error = np.abs(vel_shift*(wvl_error/wvl_shift))
 
-                csvwriter.writerow([file, date, time, phi, line, peak_pos, vel_shift])
+                csvwriter.writerow([file, date, time, phi, line, peak_pos, vel_shift, vel_error])
 
                 if nir_plot_flag:
                     plt.plot(xr,yr, color='gray')
@@ -174,12 +180,14 @@ with open(f'{obj_name}_lines.csv', 'w', newline='') as csvfile:
                     plt.show()
 
 vrads = []
+dvrads = []
 phis = []
 
 with open(f'{obj_name}_lines.csv', 'r') as file:
     for line in islice(file, 1, None): 
         splitstr = line.split(',')
-        vrads.append(float(splitstr[-1]))
+        vrads.append(float(splitstr[6]))
+        dvrads.append(float(splitstr[7]))
         phis.append(float(splitstr[3]))
 
 p0_sin = [np.max(vrads)-np.min(vrads), 2*np.pi, 3, np.max(vrads)]
@@ -188,8 +196,6 @@ poptsin, pcovsin = curve_fit(model_sin, phis, vrads, p0=p0_sin, maxfev=5000)
 
 sinx = np.linspace(0.,1.,1000)
 siny = model_sin(sinx, poptsin[0], poptsin[1], poptsin[2], poptsin[3])
-
-print(poptsin)
 
 semi_amp = abs(poptsin[0])
 v_sys = np.median(siny)
@@ -211,7 +217,7 @@ upper_bound = model_sin(sinx, p1[0], p1[1], p1[2], p1[3])
 lower_bound = model_sin(sinx, p2[0], p2[1], p2[2], p2[3])
 
 ax.plot([0,1],[v_sys,v_sys],'b--', alpha=0.5)
-ax.scatter(phis, vrads, color='k', marker='x')
+ax.errorbar(phis, vrads, yerr=dvrads, fmt='kx', ecolor='grey')
 ax.plot(sinx, siny, 'r')
 ax.fill_between(sinx, lower_bound, upper_bound, color='r', alpha=0.3)
 ax.fill_between(sinx, v_sys-perr[3], v_sys+perr[3], color='b', alpha=0.3)
