@@ -210,11 +210,11 @@ p2 = [a - b for a, b in zip(poptsin, np.sqrt(np.diag(pcovsin)))]
 upper_bound = model_sin(sinx, p1[0], p1[1], p1[2], p1[3])
 lower_bound = model_sin(sinx, p2[0], p2[1], p2[2], p2[3])
 
-ax.plot([0,1],[v_sys,v_sys],'r--', alpha=0.5)
+ax.plot([0,1],[v_sys,v_sys],'b--', alpha=0.5)
 ax.scatter(phis, vrads, color='k', marker='x')
 ax.plot(sinx, siny, 'r')
 ax.fill_between(sinx, lower_bound, upper_bound, color='r', alpha=0.3)
-ax.fill_between(sinx, v_sys-perr[3], v_sys+perr[3], color='r', alpha=0.3)
+ax.fill_between(sinx, v_sys-perr[3], v_sys+perr[3], color='b', alpha=0.3)
 ax.set_title(f'{obj_name} velocity curve')
 ax.set_ylim(-1.1*np.max(siny), 1.1*np.max(siny))
 ax.set_xlabel('Phase')
