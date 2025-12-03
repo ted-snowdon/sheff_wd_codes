@@ -22,7 +22,7 @@ c = speed_of_light/1000.
 for i in range(len(ref_lines)):
     print(f'[{i}] - {ref_lines[i]} nm')
 
-line_selection = int(input(f'\nEnter index of line to select [0-{len(ref_lines)}]: '))
+line_selection = int(input(f'\nEnter index of line to select [0-{len(ref_lines)-1}]: '))
 selected_line = ref_lines[line_selection]
 
 lines_file = [f for f in listdir() if '_lines.csv' in f][0]
