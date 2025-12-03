@@ -225,9 +225,9 @@ ax.set_title(f'{obj_name} velocity curve')
 ax.set_ylim(-1.1*np.max(siny), 1.1*np.max(siny))
 ax.set_xlabel('Phase')
 ax.set_ylabel('v_rad / km/s')
-ax.text(0.95,0.95, f'SEMI-AMP.: {np.round(semi_amp, 2)} +/- {np.round(perr[0], 2)} km/s',
-        va='top', ha='right', transform=ax.transAxes)
+ax.text(0.95,0.95, f'SEMI-AMP. {np.round(semi_amp, 2)} +/- {np.round(perr[0], 2)} km/s',
+        va='top', ha='right', transform=ax.transAxes, bbox=dict(facecolor='white', edgecolor='none'))
 ax.text(0.95,0.9, f'SYS. VEL. {np.round(v_sys, 2)} +/- {np.round(perr[3], 2)} km/s',
-        va='top', ha='right', transform=ax.transAxes)
+        va='top', ha='right', transform=ax.transAxes, bbox=dict(facecolor='white', edgecolor='none'))
 plt.grid()
 plt.show()
