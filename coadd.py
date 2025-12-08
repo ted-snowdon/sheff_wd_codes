@@ -35,7 +35,7 @@ with open(lines_file, 'r') as file:
         splitstr = line.split(',')
         if float(splitstr[4]) == selected_line:
             filenames.append(splitstr[0])
-            vrads.append(float(splitstr[-1]))
+            vrads.append(float(splitstr[-2]))
 
 wvls = []
 flxs = []
