@@ -58,7 +58,7 @@ plt.show()
 cont_wvl = np.asarray([])
 cont_flx = np.asarray([])
 
-if len(cont_wvl) == 0:
+if len(cont_as) == 0:
     print('No continuum regions selected \n Closing...')
     quit()
 
