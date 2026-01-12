@@ -5,6 +5,11 @@ import numpy as np
 from os import listdir
 import spectres
 
+def parse_filename(filename):
+    teff = ''.join([x for x in filename.split('_')[0] if x.isdigit()])
+    logg = ''.join([x for x in filename.split('_')[1] if x.isdigit()])
+    return(int(teff)/1000, float(logg)/100.)
+
 def window_crop(wvl, flx, window):
     mindex, maxdex = np.searchsorted(wvl, window)
     wvl = wvl[mindex:maxdex]
@@ -81,8 +86,9 @@ chisqs = []
 
 # LOAD MODELS AND NORMALISE
 
-for file in files:
-    print(f'\rREADING FILE {file}...', end='')
+for i in range(len(files)):
+    file = files[i]
+    print(f'\rREADING FILE {i+1}/{len(files)} {file}...', end='')
     wvl1, flx1 = read_model(f'koester2/{file}')
     wvl1, flx1 = window_crop(wvl1, flx1, wvl_window)
     cont_wvl = np.asarray([])
@@ -125,4 +131,34 @@ flx3 /= cont_curve
 plt.plot(wvl0, flx0, 'gray')
 plt.plot(wvl0, flx0s)
 plt.plot(wvl3, flx3, 'r')
+plt.show()
+
+# CHISQ SURFACE PLOT
+teffs = []
+loggs = []
+
+for file in files:
+    teff, logg = parse_filename(file)
+    teffs.append(teff)
+    loggs.append(logg)
+
+teffs = list(set(teffs))
+teffs.sort()
+tefflocs = np.arange(0, len(teffs))
+loggs = list(set(loggs))
+loggs.sort()
+logglocs = np.arange(0, len(loggs))
+
+best_teff, best_logg = parse_filename(files[best])
+best_teff = teffs.index(best_teff)
+best_logg = loggs.index(best_logg)
+
+chisqs_plot = np.asarray(chisqs).reshape(len(teffs),len(loggs))
+
+fig2, ax = plt.subplots()
+im = ax.imshow(chisqs_plot)
+ax.scatter(best_logg, best_teff, color='r', marker='x')
+ax.invert_yaxis
+ax.set_yticks(tefflocs, labels=teffs)
+ax.set_xticks(logglocs, labels=loggs, rotation=90)
 plt.show()
