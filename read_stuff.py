@@ -28,4 +28,7 @@ def read_model(teff, logg):
                 splitstr = [float(x) for x in line[:-2].split(' ') if x]
                 wvl.append(splitstr[0]/10)
                 flx.append(splitstr[1])
-    return(wvl, flx)
+    wvl_out = np.asarray(wvl)
+    flx_out = np.asarray(flx)
+    return(wvl_out, flx_out)
+
