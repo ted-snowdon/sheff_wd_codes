@@ -1,6 +1,9 @@
 # Just a couple of functions for reading .dat format spectra
 # Not to be run on its own, just so I can copy these into other scripts
 
+import matplotlib.pyplot as plt
+import numpy as np
+
 def read_spec(filename):
   # For dM model spectra as well as general use
     wvl = []
