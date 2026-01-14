@@ -1,4 +1,4 @@
-from astropy.convolution import convolve, Box1DKernel
+from astropy.convolution import convolve, Box1DKernel, Gaussian1DKernel
 import matplotlib.pyplot as plt
 from matplotlib.widgets import RectangleSelector
 import numpy as np
@@ -37,6 +37,16 @@ def lazychisq(o, e):
 
     return(sum(chisq[10:-10]))
 
+###### CONTROL STUFF ######
+wvl_window = (400, 550)
+instrument_convolve = False
+# Line wavelength
+lmbd = 434.047
+# Resolution
+R = 8000
+dlmbd = lmbd/R
+###########################
+
 files = [f for f in listdir('koester2/') if '.dk.dat' in f]
 files.sort()
 
@@ -47,7 +57,6 @@ fig, ax = plt.subplots()
 cont_as = []
 cont_bs = []
 wvl_test, flx_test = read_model(f'koester2/{files[0]}')
-wvl_window = (400, 550)
 
 mindex, maxdex = np.searchsorted(wvl_test, wvl_window)
 wvl_test, flx_test = window_crop(wvl_test, flx_test, wvl_window)
@@ -80,7 +89,18 @@ plt.show()
 wvl0, flx0 = read_model('ZTFJ0406_UVB_coadd.dat')
 wvl0 *= 10
 wvl0, flx0 = window_crop(wvl0, flx0, wvl_window)
-flx0s = convolve(flx0, Box1DKernel(5))
+
+# CREATE EVENLY-SPACED WVL AXIS AND REBIN
+
+new_axis = np.linspace(min(wvl0), max(wvl0), len(wvl0))
+flx0 = spectres.spectres(new_wavs = new_axis,
+                        spec_wavs = wvl0,
+                        spec_fluxes = flx0,
+                        spec_errs = np.zeros(len(flx0)),
+                        fill=1.0,
+                        verbose=False)[0]
+
+flx0s = convolve(flx0, Box1DKernel(10))
 
 chisqs = []
 
@@ -102,18 +122,29 @@ for i in range(len(files)):
     cont_curve = p(wvl1)
     flx1 /= cont_curve
     # REBIN TO OBSERVATION
-    flx2 = spectres.spectres(new_wavs = wvl0,
+    flx2 = spectres.spectres(new_wavs = new_axis,
                             spec_wavs = wvl1,
                             spec_fluxes = flx1,
                             spec_errs = np.zeros(len(flx1)),
                             fill=1.0,
                             verbose=False)[0]
+    # INSTRUMENTAL BROADENING
+    if instrument_convolve:
+        pix_size = new_axis[1]-new_axis[0]
+        fwhm = pix_size * dlmbd
+        flx2 = convolve(flx2, Gaussian1DKernel(fwhm))
+
     chisq = lazychisq(flx0, flx2)
     chisqs.append(chisq)
 
 best = np.argmin(chisqs)
 print(f'\nLOWEST CHI SQUARED = {np.min(chisqs)}')
 print(f'FOR MODEL {files[best]}')
+
+# PLOT BEST FIT
+
+fig2, ax = plt.subplots(1, 2, gridspec_kw={'width_ratios':[2,1]})
+fig2.tight_layout()
 
 wvl3, flx3 = read_model(f'koester2/{files[best]}')
 wvl3, flx3 = window_crop(wvl3, flx3, wvl_window)
@@ -128,10 +159,11 @@ p = np.poly1d(fit)
 cont_curve = p(wvl3)
 flx3 /= cont_curve
 
-plt.plot(wvl0, flx0, 'gray')
-plt.plot(wvl0, flx0s)
-plt.plot(wvl3, flx3, 'r')
-plt.show()
+ax[0].plot(new_axis, flx0, 'gray')
+ax[0].plot(new_axis, flx0s, 'k')
+ax[0].plot(wvl3, flx3, 'r')
+ax[0].set_xlabel('Wavelength (nm)')
+ax[0].set_ylabel('Normalised Flux')
 
 # CHISQ SURFACE PLOT
 teffs = []
@@ -155,10 +187,11 @@ best_logg = loggs.index(best_logg)
 
 chisqs_plot = np.asarray(chisqs).reshape(len(teffs),len(loggs))
 
-fig2, ax = plt.subplots()
-im = ax.imshow(chisqs_plot)
-ax.scatter(best_logg, best_teff, color='r', marker='x')
-ax.invert_yaxis
-ax.set_yticks(tefflocs, labels=teffs)
-ax.set_xticks(logglocs, labels=loggs, rotation=90)
+im = ax[1].imshow(chisqs_plot, aspect='auto')
+ax[1].scatter(best_logg, best_teff, color='r', marker='x')
+ax[1].invert_yaxis
+ax[1].set_yticks(tefflocs, labels=teffs)
+ax[1].set_ylabel('$T_eff$ (kK)')
+ax[1].set_xticks(logglocs, labels=loggs, rotation=90)
+ax[1].set_xlabel('log g')
 plt.show()
