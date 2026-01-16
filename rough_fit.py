@@ -1,8 +1,9 @@
-from astropy.convolution import convolve, Box1DKernel, Gaussian1DKernel
 import matplotlib.pyplot as plt
 from matplotlib.widgets import RectangleSelector
 import numpy as np
 from os import listdir
+from scipy.signal import convolve
+from scipy.signal.windows import gaussian
 import spectres
 
 def parse_filename(filename):
@@ -39,12 +40,14 @@ def lazychisq(o, e):
 
 ###### CONTROL STUFF ######
 wvl_window = (400, 550)
-instrument_convolve = False
+instrument_convolve = True
 # Line wavelength
-lmbd = 434.047
+lmbd = 486.135
 # Resolution
 R = 8000
 dlmbd = lmbd/R
+# Polynomial order for norm.
+poly_n = 4
 ###########################
 
 files = [f for f in listdir('koester2/') if '.dk.dat' in f]
@@ -100,8 +103,6 @@ flx0 = spectres.spectres(new_wavs = new_axis,
                         fill=1.0,
                         verbose=False)[0]
 
-flx0s = convolve(flx0, Box1DKernel(10))
-
 chisqs = []
 
 # LOAD MODELS AND NORMALISE
@@ -117,7 +118,7 @@ for i in range(len(files)):
         region_wvl, region_flx = window_crop(wvl1, flx1, (cont_as[i], cont_bs[i]))
         cont_wvl = np.concatenate((cont_wvl, region_wvl), axis=None)
         cont_flx = np.concatenate((cont_flx, region_flx), axis=None)
-    fit = np.polyfit(cont_wvl, cont_flx, 4)
+    fit = np.polyfit(cont_wvl, cont_flx, poly_n)
     p = np.poly1d(fit)
     cont_curve = p(wvl1)
     flx1 /= cont_curve
@@ -130,9 +131,11 @@ for i in range(len(files)):
                             verbose=False)[0]
     # INSTRUMENTAL BROADENING
     if instrument_convolve:
+        flx_test = np.copy(flx2)
         pix_size = new_axis[1]-new_axis[0]
-        fwhm = pix_size * dlmbd
-        flx2 = convolve(flx2, Gaussian1DKernel(fwhm))
+        fwhm = pix_size / dlmbd
+        gauss = gaussian(len(new_axis), std=fwhm)
+        flx2 = convolve(flx2, gauss, mode='same', method='auto') / sum(gauss)
 
     chisq = lazychisq(flx0, flx2)
     chisqs.append(chisq)
@@ -154,13 +157,12 @@ for i in range(len(cont_as)):
     region_wvl, region_flx = window_crop(wvl3, flx3, (cont_as[i], cont_bs[i]))
     cont_wvl = np.concatenate((cont_wvl, region_wvl), axis=None)
     cont_flx = np.concatenate((cont_flx, region_flx), axis=None)
-fit = np.polyfit(cont_wvl, cont_flx, 4)
+fit = np.polyfit(cont_wvl, cont_flx, poly_n)
 p = np.poly1d(fit)
 cont_curve = p(wvl3)
 flx3 /= cont_curve
 
 ax[0].plot(new_axis, flx0, 'gray')
-ax[0].plot(new_axis, flx0s, 'k')
 ax[0].plot(wvl3, flx3, 'r')
 ax[0].set_xlabel('Wavelength (nm)')
 ax[0].set_ylabel('Normalised Flux')
