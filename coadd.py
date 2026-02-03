@@ -20,8 +20,8 @@ ref_lines = [656.279,   #H alpha
 
 save_flag = True        # If true, write coadded spec to file
 p0 = [-217.0765173,      # Guess params for sine curve fit
-      6.30120061, 
-      3.09838158, 
+      2*np.pi, 
+      3, 
       45.00533485]
 line_margin = 10        # Margin in nm around line to plot
 
