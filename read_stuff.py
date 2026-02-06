@@ -35,3 +35,9 @@ def read_model(teff, logg):
     flx_out = np.asarray(flx)
     return(wvl_out, flx_out)
 
+def window_crop(wvl, flx, window):
+    mindex, maxdex = np.searchsorted(wvl, window)
+    wvl = wvl[mindex:maxdex]
+    flx = flx[mindex:maxdex]
+    return(wvl, flx)
+
