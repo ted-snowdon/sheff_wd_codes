@@ -1,3 +1,4 @@
+import hipercam as hcam
 import matplotlib.pyplot as plt
 from tkinter.filedialog import askopenfilename
 
@@ -20,72 +21,76 @@ from tkinter.filedialog import askopenfilename
 #36, 37, 38 - nrej_2, cmax_2, flag_2 
 
 print('Select .log file: ')
-
 log_file = askopenfilename()
-print(log_file)
+hlog = hcam.hlog.Hlog.rascii(log_file)
 
-if not '.log' in log_file:
-    print('Not a valid .log output file')
-    print('Closing...')
-    quit
+t0 = 2458790.986815
+p = 0.1147833978
 
-CCD1 = []
-CCD2 = []
-CCD3 = []
+def read_ccd(ccd):
+    ccd_out = hcam.hlog.Tseries(
+        t = hlog[ccd]['MJD'],
+        y = hlog[ccd]['counts_1'],
+        ye = hlog[ccd]['countse_1'],
+        te = hlog[ccd]['Exptim'],
+        cpy = True
+    )
+    
+    ccd_out.mjd2tdb(
+        position = '4:06:35.00 +10:00:59.0',
+        telescope = 'Thai National Observatory',
+        inplace = True
+    )
 
-with open(log_file, 'r') as file:
-    for _ in range(308):
-        next(file)
-    for line in file:
-        if not '#' in line:
-            splitline = line.split(' ')
-            match splitline[0]:
-                case '1':
-                    CCD1.append(splitline)
-                case '2':
-                    CCD2.append(splitline)
-                case '3':
-                    CCD3.append(splitline)
+    ccd_out.flag_outliers(
+        sigma = 3.0,
+        inplace = True)
 
-fig, ax = plt.subplots(3,1)
+    ccd_out.to_mag(
+        inplace = True
+    )
+
+    return(ccd_out)
+
+fig, ax = plt.subplots(3,2)
 fig.tight_layout()
 
-mjd1 = []
-counts1 = []
-dcounts1 = []
+ccd1 = read_ccd('1')
+ccd2 = read_ccd('2')
+ccd3 = read_ccd('3')
 
-for line in CCD1:
-    mjd1.append(float(line[2]))
-    counts1.append(float(line[15]))
-    dcounts1.append(float(line[16]))
+ccd1p = ccd1.phase(
+    t0 = t0,
+    period = p,
+    fold = True,
+    inplace = False,
+    sort = True,
+)
 
-mjd2 = []
-counts2 = []
-dcounts2 = []
+ccd2p = ccd2.phase(
+    t0 = t0,
+    period = p,
+    fold = True,
+    inplace = False,
+    sort = True,
+)
 
-for line in CCD2:
-    mjd2.append(float(line[2]))
-    counts2.append(float(line[15]))
-    dcounts2.append(float(line[16]))
+ccd3p = ccd3.phase(
+    t0 = t0,
+    period = p,
+    fold = True,
+    inplace = False,
+    sort = True,
+)
 
-mjd3 = []
-counts3 = []
-dcounts3 = []
+ccd1.mplot(axes = ax[0,0], color = 'r')
+ccd1p.mplot(axes = ax[0,1], color = 'r')
+ccd2.mplot(axes = ax[1,0], color = 'g')
+ccd2p.mplot(axes = ax[1,1], color = 'g')
+ccd3.mplot(axes = ax[2,0], color = 'b')
+ccd3p.mplot(axes = ax[2,1], color = 'b')
 
-for line in CCD3:
-    mjd3.append(float(line[2]))
-    counts3.append(float(line[15]))
-    dcounts3.append(float(line[16]))
-
-ax[0].errorbar(mjd1, counts1, yerr=dcounts1, color='r', ecolor='pink')
-ax[0].set_title('CCD1')
-ax[0].set_xticks([])
-ax[1].errorbar(mjd2, counts2, yerr=dcounts2, color='g', ecolor='palegreen', label='CCD2')
-ax[1].set_title('CCD2')
-ax[1].set_ylabel('Counts')
-ax[1].set_xticks([])
-ax[2].errorbar(mjd3, counts3, yerr=dcounts3, color='b', ecolor='lightblue', label='CCD3')
-ax[2].set_title('CCD3')
-ax[2].set_xlabel('MJD')
+for axis in ax.flatten():
+    axis.invert_yaxis()
 
 plt.show()
