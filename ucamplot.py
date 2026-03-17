@@ -1,3 +1,4 @@
+from astropy.timeseries import LombScargle
 import hipercam as hcam
 import matplotlib.pyplot as plt
 from tkinter.filedialog import askopenfilename
@@ -25,6 +26,7 @@ log_file = askopenfilename()
 hlog = hcam.hlog.Hlog.rascii(log_file)
 
 t0 = 2458790.986815
+#t0 = 2459526.24829
 p = 0.1147833978
 
 def read_ccd(ccd):
@@ -52,7 +54,7 @@ def read_ccd(ccd):
 
     return(ccd_out)
 
-fig, ax = plt.subplots(3,2)
+fig, ax = plt.subplots(3,3)
 fig.tight_layout()
 
 ccd1 = read_ccd('1')
@@ -67,6 +69,12 @@ ccd1p = ccd1.phase(
     sort = True,
 )
 
+pspec1 = LombScargle(
+    t = ccd1.t,
+    y = ccd1.y,
+    dy = ccd1.ye
+).autopower()
+
 ccd2p = ccd2.phase(
     t0 = t0,
     period = p,
@@ -74,6 +82,12 @@ ccd2p = ccd2.phase(
     inplace = False,
     sort = True,
 )
+
+pspec2 = LombScargle(
+    t = ccd2.t,
+    y = ccd2.y,
+    dy = ccd2.ye
+).autopower()
 
 ccd3p = ccd3.phase(
     t0 = t0,
@@ -83,12 +97,21 @@ ccd3p = ccd3.phase(
     sort = True,
 )
 
+pspec3 = LombScargle(
+    t = ccd3.t,
+    y = ccd3.y,
+    dy = ccd3.ye
+).autopower()
+
 ccd1.mplot(axes = ax[0,0], color = 'r')
 ccd1p.mplot(axes = ax[0,1], color = 'r')
+ax[0,2].plot(pspec1[0], -pspec1[1], color='r')
 ccd2.mplot(axes = ax[1,0], color = 'g')
 ccd2p.mplot(axes = ax[1,1], color = 'g')
+ax[1,2].plot(pspec2[0], -pspec2[1], color='g')
 ccd3.mplot(axes = ax[2,0], color = 'b')
 ccd3p.mplot(axes = ax[2,1], color = 'b')
+ax[1,2].plot(pspec3[0], -pspec3[1], color='b')
 
 for axis in ax.flatten():
     axis.invert_yaxis()
