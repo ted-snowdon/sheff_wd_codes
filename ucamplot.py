@@ -26,7 +26,6 @@ log_file = askopenfilename()
 hlog = hcam.hlog.Hlog.rascii(log_file)
 
 t0 = 2458790.986815
-#t0 = 2459526.24829
 p = 0.1147833978
 
 def read_ccd(ccd):
@@ -117,3 +116,22 @@ for axis in ax.flatten():
     axis.invert_yaxis()
 
 plt.show()
+
+answer_flag = False
+
+while not answer_flag:
+    yes_no = input('Write to lcurve data file? (y/n): ')
+    if yes_no.lower() in ['y', 'yes']:
+        write_flag, answer_flag = True, True
+    elif yes_no.lower() in ['n', 'no']:
+        write_flag, answer_flag = False, True
+    else:
+        print(f'Invalid answer: {yes_no}')
+
+if write_flag:
+    ccd1.write('ccd1.dat', lcurve=True)
+    ccd1p.write('ccd1p.dat', lcurve=True)
+    ccd2.write('ccd2.dat', lcurve=True)
+    ccd2p.write('ccd2p.dat', lcurve=True)
+    ccd3.write('ccd3.dat', lcurve=True)
+    ccd3p.write('ccd3p.dat', lcurve=True)
